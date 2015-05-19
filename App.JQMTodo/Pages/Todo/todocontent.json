@@ -1,0 +1,16 @@
+{
+    "InfoHeader" : "Main Architecture Features",    
+    "InfoList" : [
+        {
+            "InfoItem" : "1 : Html Page assembled using Html Fragements"
+        }
+		,
+        {
+            "InfoItem" : "2 : Switchable Server Side and Client Side Rendering"
+        }
+		,
+        {
+            "InfoItem" : "3 : Server Side Json Binding"
+        }
+	]
+}

@@ -1,0 +1,504 @@
+<!-- PageTitle="Group Todo" -->
+<input type="hidden" name="listitemsperpage" id="listitemsperpage" value="0">
+
+<div style="position:relative;">
+    <div id="message"></div>
+</div>
+<div id="taskcontent">
+    <ul data-role="listview" data-inset="true">
+        <li style="height:15px;">
+            <button onclick="return toggleTaskList();" tabindex="2" class="ui-btn ui-icon-recycle ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;left:5px;"></button>
+            <div style="margin: 0 auto; text-align:center">
+                <span id="taskHeading">Pending Task(s)</span>
+            </div>
+            <button id="toggleGroupViewBtn" tabindex="3" onclick="return toggleGroupView();" class="ui-btn ui-icon-arrow-d ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;right:5px;"></button>
+        </li>
+        <li>
+            <label for="taskName" class="darktext ui-hidden-accessible">Task Name:</label>
+            <input type="text" name="taskName" id="taskName" placeholder="Task Name" value="" tabindex="1">
+            <input type="hidden" name="taskId" id="taskId" value="0">
+        </li>
+        <li id="groupFilterView" style="display:none;">
+            <button id="toggleGroupFilterViewBtn" tabindex="2" onclick="return showGroupSelectView();" class="ui-btn ui-icon-recycle ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;right:5px;"></button>
+            <label for="taskGroup" class="darktext ui-hidden-accessible1">Group Filter:<span style="font-size:x-small;color:blue;text-transform:none;">Enter a New Group Name to Auto Add to Group List Filter</span></label>
+            <input type="text" name="taskGroup" id="taskGroup" placeholder="Task Group" value="" tabindex="4">
+            <div style="padding:0px;margin:0px; z-index:100;">
+                <ul data-role="listview" data-inset="true" id="taskGroupList" style="padding:0px;margin:0px;z-index:100;"></ul>
+            </div>
+        </li>
+        <li id="groupSelectView" style="display:none;">
+            <button id="toggleGroupSelectViewBtn" tabindex="2" onclick="return showGroupFilterView();" class="ui-btn ui-icon-search ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;right:5px;"></button>
+            <label for="taskGroupSelect" class="darktext ui-hidden-accessible1">Group Select:</label>
+            <select name="taskGroupSelect" id="taskGroupSelect" onchange="loadTaskList();"></select>
+        </li>
+    </ul>
+    <ul id="taskList" data-role="listview" data-inset="true">
+        {{VIEW_TODOGROUP("Default", "id":"taskList", "pageno":1, "itemsperpage":5)}}
+    </ul>
+    <button id="deleteAll" onclick="return deleteAllTask();" style="display:none;" class="ui-shadow ui-btn ui-corner-all">Delete Selected</button>
+</div>
+
+<div id="infoContent">
+    <ul data-role="listview" data-inset="true">
+        <li style="white-space:normal;">
+            A <span><a href="/Index.ashx" data-ajax="false">Group Todo</a></span> sample Hybrid App using Jquery Mobile as the front end and embedded micro service to access a sqlite database and a json config file using Arshu Hybrid App Runtime
+        </li>
+        <li style="white-space:normal;">
+            Another sample <span><a href="/Index.ashx/todo" data-ajax="false">Simple Todo App</a></span>
+        </li>
+        <li>
+            <label>
+                <input type="checkbox" id="showOnStartupChk" name="showOnStartupChk" data-mini="true" onchange="setShowInfoOnStart(this);">Do not show this on startup
+            </label>
+        </li>
+    </ul>
+</div>
+<ul data-role="listview" data-inset="true">
+    <li data-role="list-divider">
+        {{InfoHeader}}
+    </li>
+    {{#InfoList}}
+    <li>{{InfoItem}}</li>
+    {{/InfoList}}
+</ul>
+
+<script type="text/javascript">
+
+    var todoDbName = "todogroup.v1.db";
+    var todoConfigPath = "App_Data/todogroup.v1.json";
+    var msgElmId = "message";
+
+    function setShowInfoOnStart(checkElm) {
+        saveConfigData(todoConfigPath, "ShowInfoOnStart", checkElm.checked, msgElmId, null);
+    }
+
+    function showInfo() {
+
+        haveConfigFile(todoConfigPath, msgElmId, function () {
+            //Check the Config Value
+            checkConfigData(todoConfigPath, "ShowInfoOnStart", true, msgElmId, function () {
+                //Found a Match, Hide the Info Content
+                $('#showOnStartupChk').prop('checked', true).checkboxradio('refresh');
+                $('#infoContent').hide('fast');
+            }, function () {
+                //Did not find a Match, Show the Info Content
+                $('#showOnStartupChk').removeAttr('checked').checkboxradio('refresh');
+                $('#infoContent').show('slow');
+            });
+
+        }, function () {
+            //Show the Info Content
+            $('#infoContent').show('slow');
+            //Create the Config Data
+            createConfigData(todoConfigPath, "ShowInfoOnStart", false, msgElmId, null);
+        });
+    }
+
+    var groupSelectViewElmId = "groupSelectView";
+    var taskGroupElmId = "taskGroup";
+    var taskGroupListElmId = 'taskGroupList'
+    var taskGroupSelectElmId = "taskGroupSelect";
+
+    var taskIdElmId = "taskId";
+    var taskNameElmId = "taskName";
+
+    var taskListElmId = "taskList";
+    var deleteAllElmId = "deleteAll";
+
+    function setGroupDefault(calback) {
+        //Fill Initial Group Value
+        haveSQLiteDatabase(todoDbName, msgElmId, function () {
+
+            var fillStatement = "Select * from TDC_Group";
+            doSQLExecute(todoDbName, "DoSelect", fillStatement, msgElmId, function (jsonData) {
+
+                var selectElm = $("#" + taskGroupSelectElmId);
+                if (jsonData.length > 0) {
+                    $(selectElm).empty();
+                    $.each(jsonData, function (index, row) {
+                        var groupName = "";
+                        var groupId = "";
+                        var isDefault = 0;
+                        for (var colName in row) {
+                            if (colName.toLowerCase() === "GroupName".toLowerCase()) {
+                                groupName = row[colName];
+                            }
+                            else if (colName.toLowerCase() === "GroupId".toLowerCase()) {
+                                groupId = row[colName];
+                            }
+                            else if (colName.toLowerCase() === "IsDefault".toLowerCase()) {
+                                isDefault = row[colName];
+                            }
+                        }
+                        if (isDefault == 1) {
+                            selectElm.append(new Option(groupName, groupId, true, true));
+                        }
+                        else {
+                            selectElm.append(new Option(groupName, groupId));
+                        }
+                        if ((index == 0) || (isDefault == 1)) {
+                            $('#' + taskGroupElmId).val(groupName);
+                            $('#' + taskNameElmId).removeAttr('disabled');
+                        }
+                    });
+                    $(selectElm).selectmenu("refresh");
+
+                    if (typeof (calback) === "function") { calback(); }
+                }
+            });
+
+        });
+    }
+
+    var currentIsCompleted = 0;
+    var currentPageNo = 1;
+    var tasksPerPage = 5;
+    var itemsPerPageElmId = "listitemsperpage";
+
+    function bindTaskList() {
+
+        $('#' + deleteAllElmId).hide();
+        var groupName = $('#' + taskGroupElmId).val();
+        if ($("#" + groupSelectViewElmId).is(":visible")) {
+            groupName = $("#" + taskGroupSelectElmId + " option:selected").text();
+        }
+
+        haveSQLiteDatabase(todoDbName, msgElmId, function () {
+
+            var selectStatement = "Select * from TDC_Group where GroupName = '" + groupName + "'";
+            doSQLExecute(todoDbName, "DoSelect", selectStatement, msgElmId, function (groupJsonData) {
+                if (groupJsonData.length == 1) {
+                    var groupId = getJsonField(groupJsonData, 0, "GroupId");
+                    var fillStatement = "Select * from TDD_Task Where IsCompleted = " + currentIsCompleted + " and GroupID =" + groupId + " Order by IsCompleted, TaskID desc";
+
+                    $("#" + taskNameElmId).val('');
+                    $("#" + taskIdElmId).val('');
+
+                    var totalPagesVal = $("#totalPages" + taskListElmId).val();;
+                    var totalPages = 1;
+                    if (totalPagesVal) {
+                        totalPages = parseInt(totalPagesVal);
+                    }
+
+                    if (currentIsCompleted == 0) {
+                        bindPageLink(todoDbName, fillStatement, 'liTodoGroupPending', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Pending Task(s) Found</div></li>", msgElmId, null, totalPages);
+                    }
+                    else {
+                        bindPageLink(todoDbName, fillStatement, 'liTodoGroupCompleted', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Completed Task(s) Found</div></li>", msgElmId, null, totalPages);
+                        $("#" + deleteAllElmId).attr('disabled', 'disabled');
+                        $("#" + deleteAllElmId).show();
+                    }
+                }
+            });
+
+        });
+
+        return false;
+    }
+
+    function loadTaskList() {
+
+        $('#' + deleteAllElmId).hide();
+        var groupName = $('#' + taskGroupElmId).val();
+        if ($("#" + groupSelectViewElmId).is(":visible")) {
+            groupName = $("#" + taskGroupSelectElmId + " option:selected").text();
+        }
+
+        haveSQLiteDatabase(todoDbName, msgElmId, function () {
+
+            var selectStatement = "Select * from TDC_Group where GroupName = '" + groupName + "'";
+            doSQLExecute(todoDbName, "DoSelect", selectStatement, msgElmId, function (groupJsonData) {
+                if (groupJsonData.length == 1) {
+                    var groupId = getJsonField(groupJsonData, 0, "GroupId");
+                    var fillStatement = "Select * from TDD_Task Where IsCompleted = " + currentIsCompleted + " and GroupID =" + groupId + " Order by IsCompleted, TaskID desc";
+
+                    $("#" + taskNameElmId).val('');
+                    $("#" + taskIdElmId).val('');
+
+                    if (currentIsCompleted == 0) {
+
+                        fillPagedList(todoDbName, fillStatement, 'liTodoGroupPending', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Pending Task(s) Found</div></li>", msgElmId);
+                    }
+                    else {
+                        fillPagedList(todoDbName, fillStatement, 'liTodoGroupCompleted', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Completed Task(s) Found</div></li>", msgElmId);
+                        $("#" + deleteAllElmId).attr('disabled', 'disabled');
+                        $("#" + deleteAllElmId).show();
+                    }
+                }
+            });
+
+        });
+
+        return false;
+    }
+
+    function bindGroupAutoComplete() {
+        //Bound AutoComplete
+        $("#" + taskGroupElmId).autocomplete({
+            method: 'GET',
+            minLength: 1,
+            matchFromStart: true, // search from start, or anywhere in the string
+            loadingHtml: '<li data-icon="none">Searching...</li>', // HTML to display when searching remotely
+            target: $("#" + taskGroupListElmId),
+            link: null,
+            //source: groupdata,
+            source: function (searchText, callback) {
+                var searchStatement = "Select * from TDC_Group where GroupName like '%" + searchText + "%'";
+                doSQLExecute(todoDbName, "DoSelect", searchStatement, msgElmId, function (jsonData) {
+                    callback(jsonData);
+                });
+            },
+            builder: function (data, settings) {
+                str = [];
+                $.each(data, function (index, row) {
+                    var colText = "";
+                    for (var colName in row) {
+                        if (colName.toLowerCase() === "GroupName".toLowerCase()) {
+                            colText = row[colName];
+                        }
+                    }
+                    str.push('<li data-icon=' + settings.icon + '><a href="#">' + settings.labelHTML(colText) + '</a></li>');
+                });
+                return str;
+            },
+            callback: function (e) {
+
+                var $a = $(e.currentTarget); // access the selected item
+                $("#" + taskGroupElmId).val($a.text()); // place the value of the selection into the search box
+                $("#" + taskGroupElmId).autocomplete('clear'); // clear the listview
+
+                window.scrollBy(0, 100);
+                window.scroll(0, findPos(document.getElementById("taskName")) - 10);
+                $("#" + taskNameElmId).removeAttr('disabled');
+                $("#" + taskNameElmId).focus();
+                $("#" + taskNameElmId).select();
+
+                loadTaskList();
+                console.log("Task Group Auto Complete Calback Complete.");
+            }
+        });
+    }
+
+    function initView() {
+
+        showInfo();
+
+        $("#" + taskNameElmId).attr('disabled', 'disabled');
+        loadConfig(itemsPerPageElmId, todoConfigPath, 'ItemsPerPage', function () {
+            tasksPerPage = $('#' + itemsPerPageElmId).val();
+            setGroupDefault(loadTaskList);
+            //setGroupDefault(bindTaskList);
+            bindGroupAutoComplete();
+        });
+    }
+
+    addLoadEvent(initView);
+
+    function toggleGroupView() {
+        if ($("#toggleGroupViewBtn").hasClass("ui-icon-arrow-d")) {
+            $("#toggleGroupViewBtn").addClass("ui-icon-arrow-u").removeClass("ui-icon-arrow-d");
+            $("#" + taskGroupElmId).focus();
+            $("#" + taskGroupElmId).select();
+            $('#groupFilterView').show();
+            $("#groupSelectView").hide();
+        } else {
+            $("#toggleGroupViewBtn").addClass("ui-icon-arrow-d").removeClass("ui-icon-arrow-u");
+            $("#" + taskNameElmId).focus();
+            $("#" + taskNameElmId).select();
+            $('#groupFilterView').hide();
+            $("#groupSelectView").hide();
+        }
+        return false;
+    }
+
+    function showGroupSelectView() {
+        $("#groupFilterView").hide();
+        $("#groupSelectView").show();
+        $("#" + taskGroupSelectElmId).focus();
+        return false;
+    }
+
+    function showGroupFilterView() {
+        $("#groupFilterView").show();
+        $("#groupSelectView").hide();
+        $("#" + taskGroupElmId).focus();
+        return false;
+    }
+
+    function toggleTaskList() {
+        if (currentIsCompleted === 0) {
+            currentIsCompleted = 1;
+            $("#taskHeading").text('Completed Task(s)')
+        }
+        else {
+            currentIsCompleted = 0;
+            $("#taskHeading").text('Pending Task(s)')
+        }
+        return loadTaskList();
+    }
+
+    $("#" + taskGroupElmId).bind('keypress', function (e) {
+        if (e.keyCode == 13) {
+            loadTaskList();
+        }
+    });
+
+    $("#" + taskNameElmId).bind('keypress', function (e) {
+        if (e.keyCode == 13) {
+            addTask();
+        }
+    });
+
+    function enableDeleteAll() {
+        $("#" + deleteAllElmId).attr('disabled', 'disabled');
+        var checkedVals = $('.taskCheck:checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        if (checkedVals.length > 0) {
+            $("#" + deleteAllElmId).removeAttr('disabled');
+        }
+    }
+
+    function addTask() {
+
+        var message = document.getElementById('message');
+        message.innerHTML = '';
+
+        var valid = true;
+        if ($("#" + taskGroupElmId).val().length == 0) {
+            showError('Please enter/select the Group', 'message')
+            valid = false;
+        }
+        if (valid === true) {
+            if ($.trim($("#" + taskNameElmId).val()).length == 0) {
+                showError('Please enter a Task Name', 'message')
+                valid = false;
+            }
+        }
+
+        if (valid === true) {
+
+            var groupName = $("#" + taskGroupElmId).val();
+            var taskName = $("#" + taskNameElmId).val();
+            var taskId = $("#" + taskIdElmId).val();
+
+            if ((taskId != 0) && (taskId.length != 0)) {
+                updateTaskName(taskId, taskName);
+            }
+            else {
+                var selectStatement = "Select * from TDC_Group where GroupName = '" + groupName + "'";
+                doSQLExecute(todoDbName, "DoSelect", selectStatement, msgElmId, function (groupJsonData) {
+                    if (groupJsonData.length == 1) {
+                        insertTask(groupJsonData, taskName);
+                    }
+                    else {
+                        insertGroup(groupName, addTask);
+                    }
+                });
+            }
+        }
+
+        return false;
+    }
+
+    function updateDefaultGroup(groupId) {
+
+        var updateStatement = "Update TDC_Group Set IsDefault = 0";
+        doSQLExecute(todoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+            if (affectedRecCount > 0) {
+                var updateStatement = "Update TDC_Group Set IsDefault = 1 where GroupID=" + groupId;
+                doSQLExecute(todoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+                    if (affectedRecCount > 0) {
+                        loadTaskList();
+                    } else {
+                        showError('Error in Update the Group', msgElmId);
+                    }
+                });
+            } else {
+                showError('Error in Update the Group', msgElmId);
+            }
+        });
+
+        return false;
+    }
+
+    function insertGroup(groupName, calback) {
+        var insertStatement = "Insert into TDC_Group(GroupGUID, GroupName) Values('~NEWGUID~', '" + groupName + "')";
+        doSQLExecute(todoDbName, "DoInsert", insertStatement, msgElmId, function (jsonData) {
+            if (typeof (calback) === "function") { calback(); }
+        });
+    }
+
+    function insertTask(groupJsonData, taskName) {
+        var groupId = getJsonField(groupJsonData, 0, "GroupId");
+        var groupGuid = getJsonField(groupJsonData, 0, "GroupGuid");
+
+        if ((groupId > 0) && (groupGuid.length > 0)) {
+
+            updateDefaultGroup(groupId);
+            setGroupDefault(null);
+
+            var insertStatement = "Insert into TDD_Task(TaskGUID, GroupID, GroupGUID, TaskName) Values('~NEWGUID~', " + groupId + ",'" + groupGuid + "','" + taskName + "')";
+            doSQLExecute(todoDbName, "DoInsert", insertStatement, msgElmId, function (jsonData) {
+                $("#" + taskNameElmId).val('');
+                loadTaskList();
+            });
+        }
+    }
+
+    function setTask(tashName, taskId) {
+        $("#" + taskNameElmId).val(tashName);
+        $("#" + taskIdElmId).val(taskId);
+        return false;
+    }
+
+    function updateTaskName(taskId, taskName) {
+
+        var updateStatement = "Update TDD_Task Set TaskName = '" + taskName + "' where TaskId = " + taskId;
+        doSQLExecute(todoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+            if (affectedRecCount == 1) {
+                loadTaskList();
+            } else {
+                showError('Error in Updating the Task', msgElmId);
+            }
+        });
+
+        return false;
+    }
+
+    function updateTask(taskId, isCompleted) {
+
+        var updateStatement = "Update TDD_Task Set IsCompleted = " + isCompleted + " where TaskId = " + taskId;
+        doSQLExecute(todoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+            if (affectedRecCount == 1) {
+                loadTaskList();
+            } else {
+                showError('Error in Update the Task', msgElmId);
+            }
+        });
+
+        return false;
+    }
+
+    function deleteAllTask() {
+        var checkedVals = $('.taskCheck:checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        if (checkedVals.length > 0) {
+
+            var deleteStatement = "Delete from TDD_Task Where TaskID in (" + checkedVals.join(",") + ") and IsCompleted = 1";
+            doSQLExecute(todoDbName, "DoDelete", deleteStatement, msgElmId, function (affectedRecCount) {
+                if (affectedRecCount > 0) {
+                    $("#" + deleteAllElmId).attr('disabled', 'disabled');
+                    loadTaskList();
+                } else {
+                    showError('Error in Update the Task', msgElmId);
+                }
+            });
+
+        }
+
+        return false;
+    }
+
+</script>
