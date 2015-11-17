@@ -1,0 +1,252 @@
+<!-- PageTitle="Simple Todo" -->
+<input type="hidden" name="listitemsperpage" id="listitemsperpage" value="0">
+
+<div style="position:relative;">
+    <div id="message"></div>
+</div>
+<div id="taskcontent">
+    <ul data-role="listview" data-inset="true">
+        <li style="height:15px;">
+            <button onclick="return toggleTaskList();" tabindex="3" class="ui-btn ui-icon-recycle ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;left:5px;"></button>
+            <div style="margin: 0 auto; text-align:center">
+                <span id="taskHeading">Pending Task(s)</span>
+            </div>
+        </li>
+        <li>
+            <label for="taskName" class="darktext ui-hidden-accessible">Task Name:</label>
+            <input type="text" name="taskName" id="taskName" placeholder="Task Name" value="" tabindex="1">
+            <input type="hidden" name="taskId" id="taskId" value="0">
+        </li>
+    </ul>
+    <ul id="taskList" data-role="listview" data-inset="true">
+
+    </ul>
+    <button id="deleteAll" onclick="return deleteAllTask();" style="display:none;" class="ui-shadow ui-btn ui-corner-all">Delete Selected</button>
+</div>
+<div id="infoContent" style="display:none;">
+    <ul data-role="listview" data-inset="true">
+        <li style="white-space:normal;">
+            A <span><a href="/Index.ashx" data-ajax="false">Simple Todo</a></span> sample Hybrid App using Jquery Mobile as the front end and embedded micro services to access a sqlite database and a json config file using Arshu Hybrid App Runtime
+        </li>
+        <li style="white-space:normal;">
+            Another sample <span><a href="/Index.ashx" data-ajax="false">Group Todo App</a></span>
+        </li>
+        <li>
+            <label>
+                <input type="checkbox" id="showOnStartupChk" name="showOnStartupChk" data-mini="true" onchange="setShowInfoOnStart(this);">Do not show this on startup
+            </label>
+        </li>
+    </ul>
+</div>
+<ul data-role="listview" data-inset="true">
+    <li data-role="list-divider" style="text-align: center; white-space: normal;">
+        {{InfoHeader}}
+    </li>
+    {{#InfoList}}
+    <li style="text-align: center; white-space: normal;">{{InfoItem}}</li>
+    {{/InfoList}}
+</ul>
+
+<script type="text/javascript">
+
+    var simpletodoDbName = "todo.v1.db";
+    var simpletodoConfigPath = "App_Data/todo.v1.json";
+    var msgElmId = "message";
+
+    function setShowInfoOnStart(checkElm) {
+        saveConfigData(simpletodoConfigPath, "ShowInfoOnStart", checkElm.checked, msgElmId, null);
+    }
+
+    function showInfo() {
+
+        haveConfigFile(simpletodoConfigPath, msgElmId, function () {
+            //Check the Config Value
+            checkConfigData(simpletodoConfigPath, "ShowInfoOnStart", true, msgElmId, function () {
+                //Found a Match, Hide the Info Content
+                $('#showOnStartupChk').prop('checked', true).checkboxradio('refresh');
+                $('#infoContent').hide('fast');
+            }, function () {
+                //Did not find a Match, Show the Info Content
+                $('#showOnStartupChk').removeAttr('checked').checkboxradio('refresh');
+                $('#infoContent').show('slow');
+            });
+
+        }, function () {
+            //Show the Info Content
+            $('#infoContent').show('slow');
+            //Create the Config Data
+            createConfigData(simpletodoConfigPath, "ShowInfoOnStart", false, msgElmId, null);
+        });
+    }
+
+    var taskIdElmId = "taskId";
+    var taskNameElmId = "taskName";
+
+    var taskListElmId = "taskList";
+    var deleteAllElmId = "deleteAll";
+
+    var currentIsCompleted = 0;
+    var currentPageNo = 1;
+    var tasksPerPage = 5;
+    var itemsPerPageElmId = "listitemsperpage";
+
+    function loadTaskList() {
+
+        $("#" + deleteAllElmId).hide();
+
+        haveSQLiteDatabase(simpletodoDbName, msgElmId, function () {
+
+            var fillStatement = "Select * from TDD_Task Where IsCompleted = " + currentIsCompleted + " Order by IsCompleted, TaskID desc";
+
+            $("#" + taskNameElmId).val('');
+            $("#" + taskIdElmId).val('');
+
+            if (currentIsCompleted == 0)
+            {
+                fillPagedList(simpletodoDbName, fillStatement, 'liTodoPending', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Pending Task(s) Found</div></li>", msgElmId);
+            }
+            else
+            {
+                fillPagedList(simpletodoDbName, fillStatement, 'liTodoCompleted', currentPageNo, tasksPerPage, taskListElmId, "", "<li style='white-space:normal;'><div>No Completed Task(s) Found</div></li>", msgElmId);
+                $("#" + deleteAllElmId).attr('disabled', 'disabled');
+                $("#" + deleteAllElmId).show();
+            }
+
+        });
+
+        return false;
+    }
+
+    function toggleTaskList() {
+        if (currentIsCompleted === 0) {
+            currentIsCompleted = 1;
+            $("#taskHeading").text('Completed Task(s)')
+        }
+        else {
+            currentIsCompleted = 0;
+            $("#taskHeading").text('Pending Task(s)')
+        }
+        return loadTaskList()
+    }
+
+    function initView()
+    {
+        showInfo();
+        loadConfig(itemsPerPageElmId, simpletodoConfigPath, 'ItemsPerPage', function () {
+            tasksPerPage = $('#' + itemsPerPageElmId).val();
+            loadTaskList();
+        });
+    }
+
+    addLoadEvent(initView);
+
+    $("#" + taskNameElmId).bind('keypress', function (e) {
+        if (e.keyCode == 13) {
+            addTask();
+        }
+    });
+
+    function enableDeleteAll() {
+        $("#" + deleteAllElmId).attr('disabled', 'disabled');
+        var checkedVals = $('.taskCheck:checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        if (checkedVals.length > 0) {
+            $("#" + deleteAllElmId).removeAttr('disabled');
+        }
+    }
+
+    function addTask() {
+
+        var message = document.getElementById('message');
+        message.innerHTML = '';
+
+        var valid = true;
+        if ($.trim($("#" + taskNameElmId).val()).length == 0) {
+            showError('Please enter a Task Name', 'message')
+            valid = false;
+        }
+
+        if (valid === true) {
+
+            var taskName = $("#" + taskNameElmId).val();
+            var taskId = $("#" + taskIdElmId).val();
+
+            if ((taskId != 0) && (taskId.length != 0)) {
+                updateTaskName(taskId, taskName);
+            }
+            else
+            {
+                insertTask(taskName);
+            }
+        }
+
+        return false;
+    }
+
+    function insertTask(taskName) {
+
+        var insertStatement = "Insert into TDD_Task(TaskGUID, TaskName) Values('~NEWGUID~', '" + taskName + "')";
+        doSQLExecute(simpletodoDbName, "DoInsert", insertStatement, msgElmId, function (jsonData) {
+            $("#" + taskNameElmId).val('');
+            loadTaskList();
+        });
+
+    }
+
+    function setTask(tashName, taskId)
+    {
+        $("#" + taskNameElmId).val(tashName);
+        $("#" + taskIdElmId).val(taskId);
+        return false;
+    }
+
+    function updateTaskName(taskId, taskName) {
+
+        var updateStatement = "Update TDD_Task Set TaskName = '" + taskName + "' where TaskId = " + taskId;
+        doSQLExecute(simpletodoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+            if (affectedRecCount == 1) {
+                loadTaskList();
+            } else {
+                showError('Error in Updating the Task', msgElmId);
+            }
+        });
+
+        return false;
+    }
+
+    function updateTask(taskId, isCompleted) {
+
+        var updateStatement = "Update TDD_Task Set IsCompleted = " + isCompleted + " where TaskId = " + taskId;
+        doSQLExecute(simpletodoDbName, "DoUpdate", updateStatement, msgElmId, function (affectedRecCount) {
+            if (affectedRecCount == 1) {
+                loadTaskList();
+            } else {
+                showError('Error in Update the Task', msgElmId);
+            }
+        });
+
+        return false;
+    }
+
+    function deleteAllTask() {
+        var checkedVals = $('.taskCheck:checkbox:checked').map(function () {
+            return this.value;
+        }).get();
+        if (checkedVals.length > 0) 
+        {
+            var deleteStatement = "Delete from TDD_Task Where TaskID in (" + checkedVals.join(",") + ") and IsCompleted = 1";
+            doSQLExecute(simpletodoDbName, "DoDelete", deleteStatement, msgElmId, function (affectedRecCount) {
+                if (affectedRecCount > 0) {
+                    $("#" + deleteAllElmId).attr('disabled', 'disabled');
+                    loadTaskList();
+                } else {
+                    showError('Error in Update the Task', msgElmId);
+                }
+            });
+        }
+
+        return false;
+    }
+
+</script>

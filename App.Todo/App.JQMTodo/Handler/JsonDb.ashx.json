@@ -1,0 +1,7 @@
+{
+    "AllowSelectRole" : "GuestRole",    
+    "AllowInsertRole" : "GuestRole",    
+    "AllowUpdateRole" : "GuestRole",    
+    "AllowDeleteRole" : "GuestRole",    
+    "RemoteUrl" : ""
+}

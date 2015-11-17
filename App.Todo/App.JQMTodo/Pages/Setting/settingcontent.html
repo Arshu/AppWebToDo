@@ -1,0 +1,55 @@
+<div id="setting">
+    <ul data-role="listview" data-inset="true" data-theme="a" data-dividertheme="b">
+        <li data-role="list-divider" style="word-spacing:normal;">
+            Global Configuration
+        </li>
+        <li>
+            <label for="todoItemsPerPage" class="ui-hidden-accessible1">Todo Items Per Page<span style="color:red">*</span>:</label>
+            <input type="text" name="todoItemsPerPage" id="todoItemsPerPage" placeholder="Todo ItemsPerPage" value="5" />
+        </li>
+        <li>
+            <label for="groupTodoItemsPerPage" class="ui-hidden-accessible1">Group Todo Items Per Page<span style="color:red">*</span>:</label>
+            <input type="text" name="groupTodoItemsPerPage" id="groupTodoItemsPerPage" placeholder="Group Todo ItemsPerPage" value="5" />
+        </li>
+        <li>
+            <button onclick="return saveConfigAll();" class="ui-shadow ui-btn ui-corner-all">Save Config</button>
+        </li>
+        <li style="white-space:normal;">
+            <div style="position:relative;">
+                <div id="saveMessage"></div>
+            </div>
+        </li>
+    </ul>
+</div>
+<script type="text/javascript">
+
+    var msgElmId = "saveMessage";
+
+    var todoConfigPath = "App_Data/todo.v1.json";
+    var totoItemsPerPageElmId = "todoItemsPerPage";
+
+    var groupTodoConfigPath = "App_Data/todogroup.v1.json";
+    var groupTotoItemsPerPageElmId = "groupTodoItemsPerPage";
+
+    function initView() {
+
+        console.log("Initialized View.");
+
+        loadConfig(totoItemsPerPageElmId, todoConfigPath, 'ItemsPerPage', function () {
+            loadConfig(groupTotoItemsPerPageElmId, groupTodoConfigPath, 'ItemsPerPage', null);
+        });
+    }
+
+    addLoadEvent(initView);
+
+    function saveConfigAll() {
+
+        saveConfigNumber(totoItemsPerPageElmId, "Please Enter Todo Items Per Page as a Valid Numerical Value", todoConfigPath, 'ItemsPerPage', function () {
+            saveConfigNumber(groupTotoItemsPerPageElmId, "Please Enter Group Todo Items Per Page as a Valid Numerical Value", groupTodoConfigPath, 'ItemsPerPage', function () {
+                showSuccess("Successfully Saved", msgElmId);
+            });
+        });
+
+    }
+
+</script>
