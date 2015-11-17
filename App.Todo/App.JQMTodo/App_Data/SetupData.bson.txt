@@ -1,7 +1,0 @@
-[{
-	"AppName" : "App.JQueryMobileTodo.v1",        
-	"AppLabel" : "JQueryMobileTodo",        
-	"AppVersion" : "JQuery Mobile Todo v1",        
-    "AppTypeGUID" : "725cfec0-cf84-4baf-9a71-08ec927a6e6b", 
-	"DefaultApp" :"App.JQueryMobileTodo.v1"	       
-}]
