@@ -71,12 +71,19 @@ function haveSQLiteDatabase(dbName, msgId, successCallback, cacheResult)
                     }
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
+                        console.log(retError);
                         showError(retError, msgId);
                     }
+                } 
+                else  if (response.hasOwnProperty('Error') === true) 
+                {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
 
                 if (haveResult === false) {
-                    showError("No Databases Found", msgId);
+                    //showError(dbName + " Database Not Found", msgId);
+                    console.log(dbName + " Database Not Found");
                 }
             });
     }
@@ -124,13 +131,19 @@ function doSQLExecute(dbName, sqlMethod, sqlStatement, msgId, successCallback, c
                     }
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
+                        console.log(retError);
                         showError(retError, msgId);
                         haveError = true;
                     }
                 }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
+                }
 
                 if ((haveResult === false) && (haveError == false)) {
-                    showError("No data Found", msgId);
+                    //showError("No data Found", msgId);
+                    console.log("No data found for " + sqlStatement )
                 }
 
             });
@@ -179,13 +192,19 @@ function doSQLSelectPaged(dbName, sqlStatement, pageNo, itemsPerPage, msgId, suc
                     }
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
+                        console.log(retError);
                         showError(retError, msgId);
                         haveError = true;
                     }
                 }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
+                }
 
                 if ((haveResult === false) && (haveError == false)) {
-                    showError("No data Found", msgId);
+                    //showError("No data Found", msgId);
+                    console.log("No data found for " + sqlStatement)
                 }
 
             });
@@ -225,7 +244,12 @@ function doSQLExtractCsv(dbName, sqlStatement, dataFilePath, writeHeaderName, ms
                    else if (retResult.hasOwnProperty('error') === true) {
                        var retError = retResult.error;
                        showError(retError, msgElmId);
+                       console.log(retError);
                    }
+               }
+               else if (response.hasOwnProperty('Error') === true) {
+                   var retError = response.Error;
+                   console.log(retError);
                }
            });
     }
@@ -294,6 +318,7 @@ function fillPagedList(dbName, selectStatement, dataTemplateName, pageNo, itemsP
                 else if (retResult.hasOwnProperty('error') === true) {
                     var retError = retResult.error;
                     showError(retError, msgId);
+                    console.log(retError);
                 } else {
                     if (emptyHtml) {
                         $(elmULPlaceHolder).show();
@@ -301,6 +326,10 @@ function fillPagedList(dbName, selectStatement, dataTemplateName, pageNo, itemsP
                         $(elmULPlaceHolder).listview("refresh");
                     }
                 }
+            }
+            else if (response.hasOwnProperty('Error') === true) {
+                var retError = response.Error;
+                console.log(retError);
             }
         });
 
@@ -374,8 +403,13 @@ function haveConfigFile(configFilePath, msgId, successCallback, errorCallback, c
                     }
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
+                        console.log(retError);
                         if (typeof (errorCallback) === "function") errorCallback(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     } else {
@@ -432,7 +466,12 @@ function checkConfigData(configFilePath, configName, configExpectedValue, msgId,
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
                         showError(retError, msgId);
+                        console.log(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     }
@@ -463,7 +502,7 @@ function getConfigData(configFilePath, msgId, successCallback, cacheResult)
             params: paramValues
         };
 
-        afJsonRequest(jsonFileRequestPath, request, msgId,
+        asyncJsonRequest(jsonFileRequestPath, request, msgId,
             function (response) {
                 var haveResult = false;
                 if (response.hasOwnProperty('Result') === true) {
@@ -481,7 +520,12 @@ function getConfigData(configFilePath, msgId, successCallback, cacheResult)
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
                         showError(retError, msgId);
+                        console.log(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     } else {
@@ -540,7 +584,12 @@ function createConfigData(configFilePath, configNameArr, configValueArr, msgId, 
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
                         showError(retError, msgId);
+                        console.log(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     }
@@ -597,7 +646,12 @@ function saveConfigData(configFilePath, configNameArr, configValueArr, msgId, su
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
                         showError(retError, msgId);
+                        console.log(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     }
@@ -629,7 +683,12 @@ function setConfigData(configFilePath, jsonFileData, msgId, successCallback) {
                     else if (retResult.hasOwnProperty('error') === true) {
                         var retError = retResult.error;
                         showError(retError, msgId);
+                        console.log(retError);
                     }
+                }
+                else if (response.hasOwnProperty('Error') === true) {
+                    var retError = response.Error;
+                    console.log(retError);
                 }
             });
     }
@@ -729,7 +788,12 @@ function sendMail(mailFrom, mailTo, mailSubject, mailTemplate, replaceList, atta
                 else if (retResult.hasOwnProperty('error') === true) {
                     var retError = retResult.error;
                     showError(retError, msgElmId);
+                    console.log(retError);
                 }
+            }
+            else if (response.hasOwnProperty('Error') === true) {
+                var retError = response.Error;
+                console.log(retError);
             }
         });
 }
@@ -771,7 +835,12 @@ function hashRegister(hash, purchaseEmail, vendorEmail, mailConfig, mailSubject,
                    else if (retResult.hasOwnProperty('error') === true) {
                        var retError = "Unable to Register [" + retResult.error + "]";
                        showError(retError, msgElmId);
+                       console.log(retError);
                    }
+               }
+               else if (response.hasOwnProperty('Error') === true) {
+                   var retError = response.Error;
+                   console.log(retError);
                }
            });
     }
@@ -814,7 +883,12 @@ function hashConfirm(hash, purchaserCode, accessPassword, mailConfig, mailSubjec
                    else if (retResult.hasOwnProperty('error') === true) {
                        var retError = "Unable to Confirm Registration. Enter Correct Purchaser Code and Access Password or Please Re Register";
                        showError(retError, msgElmId);
+                       console.log(retError);
                    }
+               }
+               else if (response.hasOwnProperty('Error') === true) {
+                   var retError = response.Error;
+                   console.log(retError);
                }
            });
     }

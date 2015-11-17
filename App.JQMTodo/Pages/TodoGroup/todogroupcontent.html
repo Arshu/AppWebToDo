@@ -21,7 +21,7 @@
         <li id="groupFilterView" style="display:none;">
             <button id="toggleGroupFilterViewBtn" tabindex="2" onclick="return showGroupSelectView();" class="ui-btn ui-icon-recycle ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;right:5px;"></button>
             <label for="taskGroup" class="darktext ui-hidden-accessible1">Group Filter:<span style="font-size:x-small;color:blue;text-transform:none;">Enter a New Group Name to Auto Add to Group List Filter</span></label>
-            <input type="text" name="taskGroup" id="taskGroup" placeholder="Task Group" value="" tabindex="4">
+            <input type="text" name="taskGroup" id="taskGroup" placeholder="Task Group" value="General" tabindex="4">
             <div style="padding:0px;margin:0px; z-index:100;">
                 <ul data-role="listview" data-inset="true" id="taskGroupList" style="padding:0px;margin:0px;z-index:100;"></ul>
             </div>
@@ -29,7 +29,9 @@
         <li id="groupSelectView" style="display:none;">
             <button id="toggleGroupSelectViewBtn" tabindex="2" onclick="return showGroupFilterView();" class="ui-btn ui-icon-search ui-btn-icon-notext ui-corner-all" style="position:absolute;top:-5px;right:5px;"></button>
             <label for="taskGroupSelect" class="darktext ui-hidden-accessible1">Group Select:</label>
-            <select name="taskGroupSelect" id="taskGroupSelect" onchange="loadTaskList();"></select>
+            <select name="taskGroupSelect" id="taskGroupSelect" onchange="loadTaskList();">
+                <option value="0" selected="selected">General</option>
+            </select>
         </li>
     </ul>
     <ul id="taskList" data-role="listview" data-inset="true">
@@ -54,11 +56,11 @@
     </ul>
 </div>
 <ul data-role="listview" data-inset="true">
-    <li data-role="list-divider">
+    <li data-role="list-divider" style="text-align: center; white-space: normal;">
         {{InfoHeader}}
     </li>
     {{#InfoList}}
-    <li>{{InfoItem}}</li>
+    <li style="text-align: center; white-space: normal;">{{InfoItem}}</li>
     {{/InfoList}}
 </ul>
 
@@ -72,7 +74,7 @@
         saveConfigData(todoConfigPath, "ShowInfoOnStart", checkElm.checked, msgElmId, null);
     }
 
-    function showInfo() {
+    function showInfo(completeCallback) {
 
         haveConfigFile(todoConfigPath, msgElmId, function () {
             //Check the Config Value
@@ -80,17 +82,19 @@
                 //Found a Match, Hide the Info Content
                 $('#showOnStartupChk').prop('checked', true).checkboxradio('refresh');
                 $('#infoContent').hide('fast');
+                if (typeof (completeCallback) === "function") completeCallback();
             }, function () {
                 //Did not find a Match, Show the Info Content
                 $('#showOnStartupChk').removeAttr('checked').checkboxradio('refresh');
                 $('#infoContent').show('slow');
+                if (typeof (completeCallback) === "function") completeCallback();
             });
 
         }, function () {
             //Show the Info Content
             $('#infoContent').show('slow');
             //Create the Config Data
-            createConfigData(todoConfigPath, "ShowInfoOnStart", false, msgElmId, null);
+            createConfigData(todoConfigPath, "ShowInfoOnStart", false, msgElmId, completeCallback);
         });
     }
 
@@ -147,7 +151,7 @@
                 }
             });
 
-        });
+        }, true);
     }
 
     var currentIsCompleted = 0;
@@ -191,7 +195,7 @@
                 }
             });
 
-        });
+        }, true);
 
         return false;
     }
@@ -224,10 +228,13 @@
                         $("#" + deleteAllElmId).attr('disabled', 'disabled');
                         $("#" + deleteAllElmId).show();
                     }
+                }else
+                {
+                    showError('Error in loading the Group', msgElmId);
                 }
             });
 
-        });
+        }, true);
 
         return false;
     }
@@ -281,14 +288,15 @@
 
     function initView() {
 
-        showInfo();
+        showInfo(function () {
 
-        $("#" + taskNameElmId).attr('disabled', 'disabled');
-        loadConfig(itemsPerPageElmId, todoConfigPath, 'ItemsPerPage', function () {
-            tasksPerPage = $('#' + itemsPerPageElmId).val();
-            setGroupDefault(loadTaskList);
-            //setGroupDefault(bindTaskList);
-            bindGroupAutoComplete();
+            //$("#" + taskNameElmId).attr('disabled', 'disabled');
+            loadConfig(itemsPerPageElmId, todoConfigPath, 'ItemsPerPage', function () {
+                tasksPerPage = $('#' + itemsPerPageElmId).val();
+                setGroupDefault(loadTaskList);                
+                //setGroupDefault(bindTaskList);
+                bindGroupAutoComplete();
+            });
         });
     }
 
@@ -297,10 +305,10 @@
     function toggleGroupView() {
         if ($("#toggleGroupViewBtn").hasClass("ui-icon-arrow-d")) {
             $("#toggleGroupViewBtn").addClass("ui-icon-arrow-u").removeClass("ui-icon-arrow-d");
-            $("#" + taskGroupElmId).focus();
-            $("#" + taskGroupElmId).select();
-            $('#groupFilterView').show();
-            $("#groupSelectView").hide();
+            //$("#" + taskGroupElmId).focus();
+            //$("#" + taskGroupElmId).select();
+            $('#groupFilterView').hide();
+            $("#groupSelectView").show();
         } else {
             $("#toggleGroupViewBtn").addClass("ui-icon-arrow-d").removeClass("ui-icon-arrow-u");
             $("#" + taskNameElmId).focus();

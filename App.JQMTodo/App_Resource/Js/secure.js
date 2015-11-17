@@ -306,7 +306,8 @@ function logOffUser(msgElmId, successCallback, failureCallback) {
                        } else {
                            var retMessage = retResult.message;
                            showSuccess(retMessage, msgElmId);
-                           setTimeout(function () { window.location.replace('/Index.ashx'); }, 3000);
+                           window.location.replace('/Index.ashx');
+                           //setTimeout(function () { window.location.replace('/Index.ashx'); }, 3000);
                        }
                    }
                    else if (retResult.hasOwnProperty('error') === true) {

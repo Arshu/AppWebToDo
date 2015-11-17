@@ -205,6 +205,26 @@ function processResponse(returnObj) {
     }
 }
 
+function processScript(_source) {
+    var source = _source;
+    var scripts = new Array();
+    while (source.indexOf("<script") > -1 || source.indexOf("</script") > -1) {
+        var s = source.indexOf("<script");
+        var s_e = source.indexOf(">", s);
+        var e = source.indexOf("</script", s);
+        var e_e = source.indexOf(">", e);
+        scripts.push(source.substring(s_e + 1, e));
+        source = source.substring(0, s) + source.substring(e_e + 1);
+    }
+    for (var i = 0; i < scripts.length; i++) {
+        try { eval(scripts[i]); }
+        catch (ex) {
+            alert('Script parse fail\n' + scripts[i]);
+        }
+    }
+    return source;
+}
+
 /******************************************************************************************************************************************/
 
 function addLoadEvent(func) {
@@ -216,7 +236,7 @@ function addLoadEvent(func) {
             if (oldonload) {
                 oldonload();
             }
-            func();
+            if (typeof (func) === "function") func(); 
         }
     }
 }
